@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -14,27 +15,11 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.locks.ReentrantLock;
 
-/**
- *
- */
 public class Netflics extends JFrame {
 
-    private static final int NUM_THREADS = 5; // Number of threads
-
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new Netflics().setVisible(true);
-            }
-        });
+        new Netflics().setVisible(true);
     }
 
     public Netflics() {
@@ -95,7 +80,7 @@ public class Netflics extends JFrame {
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 String searchTerm = searchTextField.getText().trim();
                 if (!searchTerm.isEmpty()) {
-                    performSearchAsync(movieDatabase, searchTerm, resultTextArea);
+                    performSearch(movieDatabase, searchTerm, resultTextArea);
                 } else {
                     resultTextArea.setText("Please enter a search term.");
                 }
@@ -103,31 +88,21 @@ public class Netflics extends JFrame {
         });
     }
 
-    private void performSearchAsync(final MovieDatabase movieDatabase, final String searchTerm, final JTextArea resultTextArea) {
-
-        SwingWorker<String, Void> searchWorker = new SwingWorker<String, Void>() {
+    private void performSearch(MovieDatabase movieDatabase, String searchTerm, JTextArea resultTextArea) {
+        Thread searchThread = new Thread(new Runnable() {
             @Override
-            protected String doInBackground() throws Exception {
+            public void run() {
                 Movie result = movieDatabase.search(searchTerm);
                 if (result == null) {
-                    return "No movie or show found with that name.";
-                }
-                return "Title: " + result.getTitle() + "\n"
-                        + "Description: " + result.getDescription() + "\n"
-                        + "Director: " + result.getDirector();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    resultTextArea.setText(get());
-                } catch (Exception e) {
-                    resultTextArea.setText("There was an error performing the search.");
+                    resultTextArea.setText("No movie or show found with that name.");
+                } else {
+                    resultTextArea.setText("Title: " + result.getTitle() + "\n"
+                            + "Description: " + result.getDescription() + "\n"
+                            + "Director: " + result.getDirector());
                 }
             }
-        };
-
-        searchWorker.execute();
+        });
+        searchThread.start();
     }
 
     public static class Movie {
@@ -158,7 +133,6 @@ public class Netflics extends JFrame {
     public static class MovieDatabase {
 
         private final ConcurrentHashMap<String, Movie> movieData;
-        private final ReentrantLock lock = new ReentrantLock();
 
         public MovieDatabase() {
             movieData = new ConcurrentHashMap<>();
@@ -183,13 +157,7 @@ public class Netflics extends JFrame {
         }
 
         public Movie search(String term) {
-            try {
-                lock.lock();
-                return movieData.get(term.toLowerCase());
-            } finally {
-                lock.unlock();
-            }
+            return movieData.get(term.toLowerCase());
         }
     }
 }
-
