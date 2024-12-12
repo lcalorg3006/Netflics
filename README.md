@@ -3,6 +3,8 @@
 
 Netflics es un buscador de películas y series, ofreciendo recomendaciones en relación a los géneros más vistos por el usuario
 
+![alt text](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKfw3WnsVEiW4iZ7TwQBSegnZ1fuhCpHCtXg&s)
+
 ## Componentes
 
 - [@lcalorg3006](https://github.com/lcalorg3006)
