@@ -1,0 +1,3 @@
+Inception;A mind-bending thriller by Christopher Nolan.;Christopher Nolan;MYSTERY
+The Matrix;A computer hacker learns about the true nature of his reality.;The Wachowskis;ACTION
+The Notebook;A love story that spans decades, starring Ryan Gosling and Rachel McAdams.;Nick Cassavetes;ROMANCE
