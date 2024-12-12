@@ -11,9 +11,14 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -115,7 +120,8 @@ public class Netflics extends JFrame {
         });
     }
 
-    private void performSearch(MovieDatabase movieDatabase, String searchTerm, JTextArea resultTextArea, JTextArea relatedTextArea) {
+    private void performSearch(MovieDatabase movieDatabase, String searchTerm, JTextArea resultTextArea,
+            JTextArea relatedTextArea) {
         Thread searchThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -190,39 +196,62 @@ public class Netflics extends JFrame {
         }
     }
 
+    private static final int NUM_THREADS = 4;
+
     private MovieGenre findRelatedMovies(String filePath) {
-        try {
-            // ------ Leer metadata y sacar los géneros ------
-            BufferedReader br = new BufferedReader(new FileReader(filePath));
+
+        // ------ Leer metadata y sacar los géneros ------
+        ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
+        ConcurrentHashMap<MovieGenre, Integer> genreCount = new ConcurrentHashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+
+            List<String> lines = new ArrayList<>();
             String line;
-            ConcurrentHashMap<MovieGenre, Integer> genreCount = new ConcurrentHashMap<>();
 
+            // Saco todas las líneas a lista (para dividirlas luego)
             while ((line = br.readLine()) != null) {
-                String[] fields = line.split(";");
+                lines.add(line);
+            }
 
-                // Como género va en última posición necesitaremos que haya 4 mín...
-                if (fields.length > 3) {
-                    // Saca último campo, lo añade a la lista de géneros
-                    MovieGenre genre = MovieGenre.valueOf(fields[3].toUpperCase());
-                    genreCount.put(genre, genreCount.getOrDefault(genre, 0) + 1);
-                    /* 
-                       ^ Sobre esto:
-                         getOrDefault - añade o actualiza valor SEGÚN KEY
-                         Mi mapa esta compuesto de dos cosas (genero, veces)
-                            - Llega peli con género nuevo MYSTERY
-                              Key = MYSTERY 
-                              genreCount.getOrDefault(MYSTERY, 0) 
-                              -> "MYSTERY es nuevo en genreCount, pondré valor por defecto 0"
-                              Value = (0 + 1) = 1
-                            - Llega peli con mismo género MYSTERY
-                              Key = MYSTERY 
-                              genreCount.getOrDefault(MYSTERY, 0)
-                              -> "MYSTERY ya tenía valor, voy a devolver el 1 de antes"
-                              Value = (1+1) = 2
-                            - (...Repetir tantas veces esté)
-                    */
-                    
-                }
+            // Calcular cuántas líneas deberá leer cada hilo
+            int linesPerThread = lines.size() / NUM_THREADS;
+
+            // Crear y enviar tareas a los hilos
+            for (int i = 0; i < NUM_THREADS; i++) {
+                // Calculo el nº de líneas que se va a encargar cada uno
+                final int startIndex = i * linesPerThread;
+                final int endIndex = (i == NUM_THREADS - 1) ? lines.size() : (i + 1) * linesPerThread;
+                // ^ Resumen:
+                // Condición ? Solución1 : Solución2
+                // i =/= NUM_THREADS - 1 -> Queda archivo, leemos las líneas calculadas por
+                // defecto
+                // i == NUM_THREADS - 1 -> Vamos a llegar al final, leemos hasta el total
+
+                executor.submit(() -> {
+                    // Cada hilo lee línea, parte por ";", coge campo género y lo añade al
+                    // ConcurrentHashmap
+                    for (int j = startIndex; j < endIndex; j++) {
+                        String[] fields = lines.get(j).split(";");
+                        if (fields.length > 3) {
+                            try {
+                                // Género es el último, si tengo +3 ha ido bien, añado
+                                MovieGenre genre = MovieGenre.valueOf(fields[3].toUpperCase());
+                                genreCount.merge(genre, 1, Integer::sum);
+                                System.out.println("¡Hilo ha encontrado película del género " + genre + "!");
+                            } catch (IllegalArgumentException e) {
+                                // Como serían datos erróneos, los ignoramos
+                                System.out.println("Dato incorrecto, siguiendo...");
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Cerrar executor
+            executor.shutdown();
+            while (!executor.isTerminated()) {
+                // Si no han terminado todos los hilos, SE ESPERA
             }
 
             // ---------- Calcular género preferido ----------
@@ -241,7 +270,7 @@ public class Netflics extends JFrame {
             }
 
             // -> CASO DE EMPATE ENTRE GÉNEROS <-
-            // Ya hemos calculado el máximo final. 
+            // Ya hemos calculado el máximo final.
             // Vamos a buscar si los otros géneros equivalían a este.
             for (MovieGenre genre : genreCount.keySet()) {
                 if (genreCount.get(genre) == maxCount) {
@@ -263,10 +292,13 @@ public class Netflics extends JFrame {
 
             return mostFrequentGenre;
 
+        } catch (FileNotFoundException ex) {
+            System.out.println("No se ha encontrado el fichero metadata: " + ex.getMessage());
         } catch (IOException e) {
-            System.out.println("Error leyendo el archivo de metadata: " + e.getMessage());
-            return MovieGenre.values()[0]; // Si hay error, retorna un género por defecto
+            System.out.println("Error leyendo el fichero de metadata: " + e.getMessage());
         }
+        // Ha dado error, valor genérico
+        return MovieGenre.values()[0];
     }
 
     // Guardo todos los géneros admitidos en un enum......
