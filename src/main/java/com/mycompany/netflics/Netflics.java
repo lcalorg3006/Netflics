@@ -163,6 +163,9 @@ public class Netflics extends JFrame {
                 file.createNewFile();
             }
 
+            // [!] Pongo el br aquí abajo en lugar de en try() porque file.createNewFile() tiene que ocurrir antes
+            //     de leer y debe estar recogida por si da error, lo que implicaría un try dentro de un try.
+            //     Prefiero cerrar el buffer cuando se necesite.
             BufferedReader br = new BufferedReader(new FileReader(file));
             String linea;
 
@@ -189,6 +192,8 @@ public class Netflics extends JFrame {
                     System.out.println("Película '" + foundMovie.getTitle() + "' añadida correctamente.");
                 }
             }
+
+            br.close();
         } catch (FileNotFoundException ex) {
             System.out.println("Error encontrando el fichero: " + ex.getMessage());
         } catch (IOException ex) {
