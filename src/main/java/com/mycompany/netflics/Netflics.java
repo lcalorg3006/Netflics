@@ -237,6 +237,7 @@ public class Netflics extends JFrame {
             }
             // ---------- Calcular género preferido ----------
             MovieGenre mostFrequentGenre = null;
+            Set<MovieGenre> genresEqualMaxCount = new HashSet<>();
             int maxCount = 0;
             // Coge un género, saca cuantos hay en total en la lista
             // ¿Mayor al máximo del anterior? Es el nuevo preferido
@@ -246,6 +247,21 @@ public class Netflics extends JFrame {
                     mostFrequentGenre = genre;
                     maxCount = count;
                 }
+            }
+
+            // -> CASO DE EMPATE ENTRE GÉNEROS <-
+            // Ya hemos calculado el máximo final. 
+            // Vamos a buscar si los otros géneros equivalían a este.
+            for (MovieGenre genre : genreCount.keySet()) {
+                if (genreCount.get(genre) == maxCount) {
+                    genresEqualMaxCount.add(genre);
+                }
+            }
+
+            // ¿Hay 2 o más géneros iguales al máximo? Elige aleatorio
+            if (genresEqualMaxCount.size() > 1) {
+                int randomIndex = (int) (Math.random() * genresEqualMaxCount.size());
+                mostFrequentGenre = (MovieGenre) genresEqualMaxCount.toArray()[randomIndex];
             }
 
             // Si no encuentra género frecuente (porque ha desaparecido el
