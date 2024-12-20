@@ -235,6 +235,7 @@ public class Netflics extends JFrame {
             while (!executor.isTerminated()) {
                 //esperar a q todos los hilos terminen
             }
+            
             // ---------- Calcular género preferido ----------
             MovieGenre mostFrequentGenre = null;
             Set<MovieGenre> genresEqualMaxCount = new HashSet<>();
@@ -277,11 +278,12 @@ public class Netflics extends JFrame {
         } catch (IOException e) {
             System.out.println("Error leyendo el fichero de metadata: " + e.getMessage());
         }
-    // Ha dado error, valor genérico
+        
+        // Ha dado error, valor genérico
         return MovieGenre.values()[0];
     }
-    // Guardo todos los géneros admitidos en un enum......
 
+    // Guardo todos los géneros admitidos en un enum......
     public static enum MovieGenre {
         ACTION, COMEDY, MYSTERY, DRAMA, SCIFI, FANTASY, HORROR, ROMANCE,
     }
@@ -323,11 +325,11 @@ public class Netflics extends JFrame {
     }
 
     public static class MovieDatabase {
+
         // ConcurrentHashMap con todas las películas/series disponibles
-
         private final ConcurrentHashMap<String, Movie> movieData;
+        
         // Añadir películas/series de prueba al mapa
-
         public MovieDatabase() {
             movieData = new ConcurrentHashMap<>();
             movieData.put("inception", new Movie("Inception", "A mind-bending thriller by Christopher Nolan.", "Christopher Nolan", MovieGenre.MYSTERY));
@@ -341,27 +343,24 @@ public class Netflics extends JFrame {
             movieData.put("the shawshank redemption", new Movie("The Shawshank Redemption", "A gripping drama about a man wrongly convicted of murder and his life in prison.", "Frank Darabont", MovieGenre.DRAMA));
             movieData.put("the conjuring", new Movie("The Conjuring", "A chilling horror movie based on true events of paranormal investigators Ed and Lorraine Warren.", "James Wan", MovieGenre.HORROR));
         }
-        // Devolver objeto película que tenga el mismo titulo
 
+        // Devolver objeto película que tenga el mismo titulo
         public Movie search(String term) {
             return movieData.get(term.toLowerCase());
         }
-        // Buscar por género (para películas relacionadas)
 
+        // Buscar por género (para películas relacionadas)
         public Movie searchByGenre(MovieGenre genre) {
             for (Movie movie : movieData.values()) {
                 if (movie.getGenre() == genre) {
                     return movie;
                 }
             }
-         // No ha encontrado otra con el mismo genero, nulo
-
+            // No ha encontrado otra con el mismo genero, nulo
             return null;
         }
-        // Devuelve un objeto Movie aleatorio (para películas relacionadas)
 
-        
-        
+        // Devuelve un objeto Movie aleatorio (para películas relacionadas)
         public Movie getRandomMovie() {
             Object[] movies = movieData.values().toArray();
             return (Movie) movies[(int) (Math.random() * movies.length)];
